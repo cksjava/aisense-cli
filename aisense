@@ -65,12 +65,13 @@ app_create() {
 update_cli() {
     echo "Updating aisense CLI..."
 
-    # Download the latest version of aisense CLI to a temporary file
+    # Download the latest version of aisense CLI with a timestamp query to avoid cache issues
     TMP_FILE="/tmp/aisense_latest"
-    curl -L "$AISENSE_URL" -o "$TMP_FILE"
+    TIMESTAMP=$(date +%s)  # Current timestamp
+    curl -L "$AISENSE_URL?timestamp=$TIMESTAMP" -o "$TMP_FILE"
 
     if [ $? -eq 0 ]; then
-        # Use sudo to copy the file to /usr/local/bin since it requires superuser permissions
+        # Use sudo to move the file to /usr/local/bin
         sudo mv "$TMP_FILE" "$INSTALL_DIR/aisense"
         
         # Make the new script executable
