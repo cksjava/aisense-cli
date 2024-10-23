@@ -65,12 +65,17 @@ app_create() {
 update_cli() {
     echo "Updating aisense CLI..."
 
-    # Download the latest version of aisense CLI
-    curl -L "$AISENSE_URL" -o "$INSTALL_DIR/aisense"
+    # Download the latest version of aisense CLI to a temporary file
+    TMP_FILE="/tmp/aisense_latest"
+    curl -L "$AISENSE_URL" -o "$TMP_FILE"
 
     if [ $? -eq 0 ]; then
+        # Use sudo to copy the file to /usr/local/bin since it requires superuser permissions
+        sudo mv "$TMP_FILE" "$INSTALL_DIR/aisense"
+        
         # Make the new script executable
-        chmod +x "$INSTALL_DIR/aisense"
+        sudo chmod +x "$INSTALL_DIR/aisense"
+
         echo "aisense CLI has been updated to the latest version!"
     else
         echo "Error: Failed to download the latest version of aisense CLI."
