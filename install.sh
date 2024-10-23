@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # URL of the aisense CLI script
-AISENSE_URL="https://raw.githubusercontent.com/cksjava/aisense-cli/main/aisense"
+AISENSE_URL="https://raw.githubusercontent.com/cksjava/aisense-cli/master/aisense"
 
 # Installation directory (usually /usr/local/bin for global access)
 INSTALL_DIR="/usr/local/bin"
