@@ -1,24 +1,79 @@
 #!/bin/bash
 
-# Define version
+# Version of the aisense CLI
 VERSION="1.0.0"
 
-# Function to display the version
+# Function to display version
 show_version() {
-    echo "aisense version $VERSION"
+    echo "aisense CLI version $VERSION"
 }
 
-# Parse command-line arguments
-while [[ "$1" != "" ]]; do
-    case $1 in
-        -v | --version )
-            show_version
-            exit 0
-            ;;
-        * )
-            echo "Unknown option: $1"
-            exit 1
-            ;;
-    esac
-    shift
-done
+# Function to display help for 'app create' command
+app_create_help() {
+    echo "Usage: aisense app create [app-name]"
+    echo ""
+    echo "This command clones the aisense-dashboard-app GitHub repository, renames the app, and installs dependencies."
+    echo "Example:"
+    echo "  aisense app create my-new-app"
+}
+
+# Function to create a new app by cloning and configuring the repository
+app_create() {
+    if [ -z "$1" ]; then
+        echo "Error: App name is required"
+        exit 1
+    fi
+
+    APP_NAME=$1
+    REPO_URL="https://github.com/cksjava/aisense-dashboard-app.git"
+
+    # Clone the repository with the name provided as app name
+    echo "Cloning the repository into $APP_NAME..."
+    git clone "$REPO_URL" "$APP_NAME"
+
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to clone the repository."
+        exit 1
+    fi
+
+    # Change directory to the newly cloned app
+    cd "$APP_NAME" || exit
+
+    # Use sed to rename the app from aisense-ui to the provided app name
+    echo "Renaming the app to $APP_NAME..."
+    sed -i "s/aisense-ui/$APP_NAME/g" package.json
+
+    # Run npm install to install dependencies
+    echo "Installing dependencies..."
+    npm install
+
+    if [ $? -eq 0 ]; then
+        echo "App $APP_NAME created and dependencies installed successfully!"
+    else
+        echo "Error: Failed to install dependencies."
+        exit 1
+    fi
+}
+
+# Main command parsing
+case "$1" in
+    -v|--version)
+        show_version
+        ;;
+    app)
+        if [ "$2" = "create" ]; then
+            if [ "$3" = "--help" ]; then
+                app_create_help
+            else
+                app_create "$3"
+            fi
+        else
+            echo "Unknown command: $2"
+            echo "Use 'aisense app create --help' for usage information."
+        fi
+        ;;
+    *)
+        echo "Unknown command: $1"
+        echo "Use 'aisense --help' for more information."
+        ;;
+esac
