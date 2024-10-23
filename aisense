@@ -3,6 +3,12 @@
 # Version of the aisense CLI
 VERSION="1.0.0"
 
+# URL for the latest aisense script in the GitHub repository
+AISENSE_URL="https://raw.githubusercontent.com/cksjava/aisense-cli/main/aisense"
+
+# Installation directory (usually /usr/local/bin)
+INSTALL_DIR="/usr/local/bin"
+
 # Function to display version
 show_version() {
     echo "aisense CLI version $VERSION"
@@ -55,6 +61,23 @@ app_create() {
     fi
 }
 
+# Function to update the aisense CLI
+update_cli() {
+    echo "Updating aisense CLI..."
+
+    # Download the latest version of aisense CLI
+    curl -L "$AISENSE_URL" -o "$INSTALL_DIR/aisense"
+
+    if [ $? -eq 0 ]; then
+        # Make the new script executable
+        chmod +x "$INSTALL_DIR/aisense"
+        echo "aisense CLI has been updated to the latest version!"
+    else
+        echo "Error: Failed to download the latest version of aisense CLI."
+        exit 1
+    fi
+}
+
 # Main command parsing
 case "$1" in
     -v|--version)
@@ -70,6 +93,14 @@ case "$1" in
         else
             echo "Unknown command: $2"
             echo "Use 'aisense app create --help' for usage information."
+        fi
+        ;;
+    cli)
+        if [ "$2" = "update" ]; then
+            update_cli
+        else
+            echo "Unknown command: $2"
+            echo "Use 'aisense cli update' to update the CLI."
         fi
         ;;
     *)
