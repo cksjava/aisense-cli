@@ -82,10 +82,40 @@ platform_create() {
     # Change directory to platform name
     cd "$PLATFORM_NAME" || exit
 
-    # Create the platform console app by appending '-console' to the platform name
-    CONSOLE_APP_NAME="${PLATFORM_NAME}-console"
-    echo "Creating console app $CONSOLE_APP_NAME..."
-    app_create "$CONSOLE_APP_NAME"
+    # List of repositories to clone
+    REPOS=(
+        "git@54.176.75.12:/home/git/repositories/aisense-admin-console"
+        "git@54.176.75.12:/home/git/repositories/aisense-agent-service"
+        "git@54.176.75.12:/home/git/repositories/aisense-client"
+        "git@54.176.75.12:/home/git/repositories/aisense-token-server"
+    )
+
+    # Clone repositories without the .git directory
+    for REPO in "${REPOS[@]}"; do
+        REPO_NAME=$(basename "$REPO" .git)  # Get the repo name
+        echo "Cloning $REPO into $REPO_NAME..."
+
+        # Clone the repo into a temporary directory
+        git clone --depth 1 "$REPO" "$REPO_NAME"
+
+        if [ $? -ne 0 ]; then
+            echo "Error: Failed to clone repository $REPO."
+            exit 1
+        fi
+
+        # Remove the .git directory to hide the remote
+        echo "Removing .git directory from $REPO_NAME..."
+        rm -rf "$REPO_NAME/.git"
+
+        # Initialize a new Git repository
+        echo "Initializing new Git repository in $REPO_NAME..."
+        cd "$REPO_NAME"
+        git init
+        cd ..
+
+    done
+
+    echo "Platform $PLATFORM_NAME created with all repositories."
 }
 
 # Function to update the aisense CLI
