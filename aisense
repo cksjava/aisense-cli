@@ -61,6 +61,33 @@ app_create() {
     fi
 }
 
+# Function to create a platform
+platform_create() {
+    if [ -z "$1" ]; then
+        echo "Error: Platform name is required"
+        exit 1
+    fi
+
+    PLATFORM_NAME=$1
+
+    # Create directory with platform name
+    echo "Creating platform directory $PLATFORM_NAME..."
+    mkdir "$PLATFORM_NAME"
+
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to create directory $PLATFORM_NAME."
+        exit 1
+    fi
+
+    # Change directory to platform name
+    cd "$PLATFORM_NAME" || exit
+
+    # Create the platform console app by appending '-console' to the platform name
+    CONSOLE_APP_NAME="${PLATFORM_NAME}-console"
+    echo "Creating console app $CONSOLE_APP_NAME..."
+    app_create "$CONSOLE_APP_NAME"
+}
+
 # Function to update the aisense CLI
 update_cli() {
     echo "Updating aisense CLI..."
@@ -99,6 +126,14 @@ case "$1" in
         else
             echo "Unknown command: $2"
             echo "Use 'aisense app create --help' for usage information."
+        fi
+        ;;
+    platform)
+        if [ "$2" = "create" ]; then
+            platform_create "$3"
+        else
+            echo "Unknown command: $2"
+            echo "Use 'aisense platform create [platform-name]' to create a platform."
         fi
         ;;
     cli)
