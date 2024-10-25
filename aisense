@@ -82,6 +82,11 @@ platform_create() {
     # Change directory to platform name
     cd "$PLATFORM_NAME" || exit
 
+    # Add the project id file
+    PLATFORM_ID=$(uuidgen)
+    echo "PLATFORM_ID=${PLATFORM_ID}" >> .aisense-platform
+    echo "PLATFORM_NAME=${PLATFORM_NAME}" >> .aisense-platform
+
     # List of repositories to clone
     REPOS=(
         "git@54.176.75.12:/home/git/repositories/aisense-admin-console"
@@ -116,6 +121,58 @@ platform_create() {
     done
 
     echo "Platform $PLATFORM_NAME created with all repositories."
+}
+
+# Function to run platform services
+platform_run() {
+    if [ ! -f .aisense-platform ]; then
+        echo "Not an aisense platform directory. Aborting..."
+        exit 1
+    fi
+
+    # Display platform details
+    PLATFORM_ID=$(grep 'PLATFORM_ID' .aisense-platform | cut -d '=' -f2)
+    PLATFORM_NAME=$(grep 'PLATFORM_NAME' .aisense-platform | cut -d '=' -f2)
+    echo "Running platform $PLATFORM_NAME with ID $PLATFORM_ID"
+    echo "Date: $(date)"
+
+    # Iterate over directories and run the scripts
+    for dir in */; do
+        if [ -f "$dir/prereqs.sh" ] && [ -f "$dir/start.sh" ]; then
+            echo "Running prereqs.sh in $dir..."
+            (cd "$dir" && ./prereqs.sh)
+
+            echo "Starting start.sh as daemon in $dir..."
+            (cd "$dir" && ./start.sh & echo $! > .pid)
+        else
+            echo "Scripts not found in $dir, skipping..."
+        fi
+    done
+}
+
+# Function to stop platform services
+platform_stop() {
+    if [ ! -f .aisense-platform ]; then
+        echo "Not an aisense platform directory. Aborting..."
+        exit 1
+    fi
+
+    # Display platform details
+    PLATFORM_ID=$(grep 'PLATFORM_ID' .aisense-platform | cut -d '=' -f2)
+    PLATFORM_NAME=$(grep 'PLATFORM_NAME' .aisense-platform | cut -d '=' -f2)
+    echo "Stopping platform $PLATFORM_NAME with ID $PLATFORM_ID"
+    echo "Date: $(date)"
+
+    # Iterate over directories and stop the processes
+    for dir in */; do
+        if [ -f "$dir/.pid" ]; then
+            PID=$(cat "$dir/.pid")
+            echo "Stopping process $PID in $dir..."
+            kill "$PID" && rm "$dir/.pid"
+        else
+            echo "No .pid file in $dir, skipping..."
+        fi
+    done
 }
 
 # Function to update the aisense CLI
@@ -161,6 +218,10 @@ case "$1" in
     platform)
         if [ "$2" = "create" ]; then
             platform_create "$3"
+        elif [ "$2" = "run" ]; then
+            platform_run
+        elif [ "$2" = "stop" ]; then
+            platform_stop
         else
             echo "Unknown command: $2"
             echo "Use 'aisense platform create [platform-name]' to create a platform."
