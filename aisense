@@ -14,53 +14,6 @@ show_version() {
     echo "aisense CLI version $VERSION"
 }
 
-# Function to display help for 'app create' command
-app_create_help() {
-    echo "Usage: aisense app create [app-name]"
-    echo ""
-    echo "This command clones the aisense-dashboard-app GitHub repository, renames the app, and installs dependencies."
-    echo "Example:"
-    echo "  aisense app create my-new-app"
-}
-
-# Function to create a new app by cloning and configuring the repository
-app_create() {
-    if [ -z "$1" ]; then
-        echo "Error: App name is required"
-        exit 1
-    fi
-
-    APP_NAME=$1
-    REPO_URL="https://github.com/cksjava/aisense-dashboard-app.git"
-
-    # Clone the repository with the name provided as app name
-    echo "Cloning the repository into $APP_NAME..."
-    git clone "$REPO_URL" "$APP_NAME"
-
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to clone the repository."
-        exit 1
-    fi
-
-    # Change directory to the newly cloned app
-    cd "$APP_NAME" || exit
-
-    # Use sed to rename the app from aisense-ui to the provided app name
-    echo "Renaming the app to $APP_NAME..."
-    sed -i "s/aisense-ui/$APP_NAME/g" package.json
-
-    # Run npm install to install dependencies
-    echo "Installing dependencies..."
-    npm install
-
-    if [ $? -eq 0 ]; then
-        echo "App $APP_NAME created and dependencies installed successfully!"
-    else
-        echo "Error: Failed to install dependencies."
-        exit 1
-    fi
-}
-
 # Function to create a platform
 platform_create() {
     if [ -z "$1" ]; then
@@ -123,60 +76,75 @@ platform_create() {
     echo "Platform $PLATFORM_NAME created with all repositories."
 }
 
-# Function to run platform services
-platform_run() {
+# Function to initialize environment variables
+platform_init() {
     if [ ! -f .aisense-platform ]; then
         echo "Not an aisense platform directory. Aborting..."
         exit 1
     fi
 
-    # Display platform details
-    PLATFORM_ID=$(grep 'PLATFORM_ID' .aisense-platform | cut -d '=' -f2)
-    PLATFORM_NAME=$(grep 'PLATFORM_NAME' .aisense-platform | cut -d '=' -f2)
-    echo "Running platform $PLATFORM_NAME with ID $PLATFORM_ID"
-    echo "Date: $(date)"
+    # Prompt for environment variables
+    echo "Initializing environment variables for the platform..."
 
-    # Iterate over directories and run the scripts
-    for dir in */; do
-        if [ -f "$dir/prereqs.sh" ] && [ -f "$dir/start.sh" ]; then
-            echo "Making prereqs.sh and start.sh executable in $dir..."
-            chmod +x "$dir/prereqs.sh"
-            chmod +x "$dir/start.sh"
+    # aisense-agent-service
+    if [ -d "aisense-agent-service" ]; then
+        echo "Configuring aisense-agent-service..."
+        read -p "LIVEKIT_URL: " LIVEKIT_URL
+        read -p "LIVEKIT_API_KEY: " LIVEKIT_API_KEY
+        read -p "LIVEKIT_API_SECRET: " LIVEKIT_API_SECRET
+        read -p "OPENAI_API_KEY: " OPENAI_API_KEY
+        read -p "DEEPGRAM_API_KEY: " DEEPGRAM_API_KEY
 
-            echo "Running prereqs.sh in $dir..."
-            (cd "$dir" && ./prereqs.sh)
-
-            echo "Starting start.sh as daemon in $dir..."
-            (cd "$dir" && ./start.sh & echo $! > .pid)
-        else
-            echo "Scripts not found in $dir, skipping..."
-        fi
-    done
-}
-
-# Function to stop platform services
-platform_stop() {
-    if [ ! -f .aisense-platform ]; then
-        echo "Not an aisense platform directory. Aborting..."
-        exit 1
+        echo "Saving environment variables to aisense-agent-service/.env..."
+        cat <<EOF > aisense-agent-service/.env
+LIVEKIT_URL=$LIVEKIT_URL
+LIVEKIT_API_KEY=$LIVEKIT_API_KEY
+LIVEKIT_API_SECRET=$LIVEKIT_API_SECRET
+OPENAI_API_KEY=$OPENAI_API_KEY
+DEEPGRAM_API_KEY=$DEEPGRAM_API_KEY
+EOF
     fi
 
-    # Display platform details
-    PLATFORM_ID=$(grep 'PLATFORM_ID' .aisense-platform | cut -d '=' -f2)
-    PLATFORM_NAME=$(grep 'PLATFORM_NAME' .aisense-platform | cut -d '=' -f2)
-    echo "Stopping platform $PLATFORM_NAME with ID $PLATFORM_ID"
-    echo "Date: $(date)"
+    # aisense-admin-console
+    if [ -d "aisense-admin-console" ]; then
+        echo "Configuring aisense-admin-console..."
+        read -p "VITE_WEBSOCKET_URL: " VITE_WEBSOCKET_URL
 
-    # Iterate over directories and stop the processes
-    for dir in */; do
-        if [ -f "$dir/.pid" ]; then
-            PID=$(cat "$dir/.pid")
-            echo "Stopping process $PID in $dir..."
-            kill "$PID" && rm "$dir/.pid"
-        else
-            echo "No .pid file in $dir, skipping..."
-        fi
-    done
+        echo "Saving environment variables to aisense-admin-console/.env..."
+        cat <<EOF > aisense-admin-console/.env
+VITE_WEBSOCKET_URL=$VITE_WEBSOCKET_URL
+EOF
+    fi
+
+    # aisense-client
+    if [ -d "aisense-client" ]; then
+        echo "Configuring aisense-client..."
+        read -p "REACT_APP_SERVER_URL: " REACT_APP_SERVER_URL
+        read -p "REACT_APP_TOKEN_SERVER: " REACT_APP_TOKEN_SERVER
+
+        echo "Saving environment variables to aisense-client/.env..."
+        cat <<EOF > aisense-client/.env
+REACT_APP_SERVER_URL=$REACT_APP_SERVER_URL
+REACT_APP_TOKEN_SERVER=$REACT_APP_TOKEN_SERVER
+EOF
+    fi
+
+    # aisense-token-server
+    if [ -d "aisense-token-server" ]; then
+        echo "Configuring aisense-token-server..."
+        read -p "LIVEKIT_API_KEY: " TOKEN_SERVER_LIVEKIT_API_KEY
+        read -p "LIVEKIT_API_SECRET: " TOKEN_SERVER_LIVEKIT_API_SECRET
+        read -p "APP_PORT: " APP_PORT
+
+        echo "Saving environment variables to aisense-token-server/.env..."
+        cat <<EOF > aisense-token-server/.env
+LIVEKIT_API_KEY=$TOKEN_SERVER_LIVEKIT_API_KEY
+LIVEKIT_API_SECRET=$TOKEN_SERVER_LIVEKIT_API_SECRET
+APP_PORT=$APP_PORT
+EOF
+    fi
+
+    echo "Platform environment variables initialized."
 }
 
 # Function to update the aisense CLI
@@ -222,10 +190,8 @@ case "$1" in
     platform)
         if [ "$2" = "create" ]; then
             platform_create "$3"
-        elif [ "$2" = "run" ]; then
-            platform_run
-        elif [ "$2" = "stop" ]; then
-            platform_stop
+        elif [ "$2" = "init" ]; then
+            platform_init
         else
             echo "Unknown command: $2"
             echo "Use 'aisense platform create [platform-name]' to create a platform."
