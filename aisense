@@ -139,6 +139,10 @@ platform_run() {
     # Iterate over directories and run the scripts
     for dir in */; do
         if [ -f "$dir/prereqs.sh" ] && [ -f "$dir/start.sh" ]; then
+            echo "Making prereqs.sh and start.sh executable in $dir..."
+            chmod +x "$dir/prereqs.sh"
+            chmod +x "$dir/start.sh"
+
             echo "Running prereqs.sh in $dir..."
             (cd "$dir" && ./prereqs.sh)
 
